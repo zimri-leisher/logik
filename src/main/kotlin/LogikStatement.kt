@@ -37,7 +37,23 @@ class VariableContext(val statement: LogikStatement, private val values: Mutable
 
         other as VariableContext
 
-        if (values != other.values) return false
+        val theseEntries = values.entries.toList()
+        val otherEntries = other.values.entries.toList()
+
+        if (otherEntries.size != theseEntries.size) {
+            return false
+        }
+
+        for (i in theseEntries.indices) {
+            val thisEntry = theseEntries[i]
+            val otherEntry = otherEntries[i]
+            if (thisEntry.key != otherEntry.key) {
+                return false
+            }
+            if (thisEntry.value != otherEntry.value) {
+                return false
+            }
+        }
 
         return true
     }
@@ -93,6 +109,7 @@ class LogikStatement internal constructor(val text: String) {
 
     fun evaluate(vararg variables: Pair<String, Boolean>) = evaluate(variables.toMap())
 
+    fun truthTable() = TruthTable(this)
 
     private fun parse() = nextExpression(OperatorPrecedence.LOWEST)
 
@@ -152,6 +169,18 @@ class LogikStatement internal constructor(val text: String) {
                 )
             } else {
                 throw EvaluationException("Expected an expression at word index $currentIndex, but the text ended")
+            }
+        } else if (token.type.category == TokenCategory.OP_BINARY_PREFIX) {
+            if (currentIndex != tokens.lastIndex) {
+                eat(token.type)
+                return token.toNode(
+                    if (token.type.precedence == OperatorPrecedence.HIGHEST)
+                        nextFactor() else
+                        nextExpression(token.type.precedence + 1),
+                    if (token.type.precedence == OperatorPrecedence.HIGHEST)
+                        nextFactor() else
+                        nextExpression(token.type.precedence + 1)
+                )
             }
         } else if (token.type == TokenType.OPEN_PAREN) {
             if (currentIndex != tokens.lastIndex) {

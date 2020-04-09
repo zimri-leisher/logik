@@ -5,11 +5,12 @@ class EvaluationException(message: String) : Exception(message)
 enum class TokenType(
     val regex: Regex,
     val category: TokenCategory,
-    val toNode: TokenType.(value: String, arguments: Array<out Node>) -> Node = { _, _ -> throw EvaluationException(
-        "logik.Token type $this has no node equivalent"
-    )
+    val toNode: TokenType.(value: String, arguments: Array<out Node>) -> Node = { _, _ ->
+        throw EvaluationException(
+            "logik.TokenType $this has no node equivalent"
+        )
     },
-    val precedence: OperatorPrecedence = OperatorPrecedence.NOT_OPERATOR
+    val precedence: OperatorPrecedence = OperatorPrecedence.TOKEN_NOT_OPERATOR
 ) {
     PREPOSITION(
         Regex("""\b\w\b"""),
@@ -41,7 +42,7 @@ enum class TokenType(
         OperatorPrecedence.HIGH
     ),
     IMPLIES(
-        Regex("""(⇒)|(\bimplies\b)|(\\implies\b)"""),
+        Regex("""(=?⇒)|(\bimplies\b)|(\\implies\b)"""),
         TokenCategory.OP_BINARY_INFIX,
         { value, args -> Implies(Token(this, value), args[0], args[1]) },
         OperatorPrecedence.MEDIUM
@@ -64,7 +65,7 @@ enum class TokenType(
         Regex("""(\btrue\b)|(\bfalse\b)"""),
         TokenCategory.LITERAL,
         { value, _ -> Literal(Token(this, value)) }
-    );
+    )
 }
 
 enum class TokenCategory {
@@ -74,12 +75,12 @@ enum class TokenCategory {
     OP_UNARY_LEFT,
     OP_UNARY_RIGHT,
     OP_BINARY_INFIX,
-    OP_BINARY_POSTFIX,
+    // no support for postfix because it requires a stack
     OP_BINARY_PREFIX
 }
 
 enum class OperatorPrecedence {
-    NOT_OPERATOR,
+    TOKEN_NOT_OPERATOR,
     LOWEST,
     LOW,
     MEDIUM,
