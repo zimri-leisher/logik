@@ -1,4 +1,4 @@
-package logik
+package com.cygns.logik
 
 /**
  * The Logik singleton object. The best way to parse a logical expression is using the [parse] method of this object.
@@ -10,7 +10,7 @@ object Logik {
     var trueText = "true"
     var falseText = "false"
 
-    fun Boolean.logikString() = if(this) trueText else falseText
+    fun Boolean.logikString() = if (this) trueText else falseText
 
     /**
      * Parses some [text] as a logical expression and returns it as a [LogikStatement].

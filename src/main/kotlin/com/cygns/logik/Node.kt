@@ -1,4 +1,4 @@
-package logik
+package com.cygns.logik
 
 sealed class Node(val token: Token) {
     abstract fun visit(context: VariableContext): Boolean

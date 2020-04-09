@@ -1,4 +1,4 @@
-package logik
+package com.cygns.logik
 
 /**
  * This class stores the boolean values of all [Variable]s for a [statement]. When a [statement] is evaluated, it creates
@@ -133,7 +133,10 @@ class LogikStatement internal constructor(val text: String) {
      * @return the truth value of the logical expression of this statement
      * when the atomic prepositions have the truth values defined in the given [context].
      */
-    fun evaluate(context: VariableContext = VariableContext(this)) = baseNode.visit(context)
+    fun evaluate(context: VariableContext = VariableContext(
+        this
+    )
+    ) = baseNode.visit(context)
 
     /**
      * Evaluates this [LogikStatement] with variables set to the value assigned to them in the map. The key of the map should

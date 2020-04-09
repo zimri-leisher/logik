@@ -1,6 +1,6 @@
-package logik
+package com.cygns.logik
 
-import logik.Logik.logikString
+import com.cygns.logik.Logik.logikString
 import java.lang.Integer.max
 import java.lang.StringBuilder
 

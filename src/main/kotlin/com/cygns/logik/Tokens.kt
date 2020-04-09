@@ -1,4 +1,4 @@
-package logik
+package com.cygns.logik
 
 class EvaluationException(message: String) : Exception(message)
 
@@ -7,7 +7,7 @@ enum class TokenType(
     val category: TokenCategory,
     val toNode: TokenType.(value: String, arguments: Array<out Node>) -> Node = { _, _ ->
         throw EvaluationException(
-            "logik.TokenType $this has no node equivalent"
+            "logik.com.cygns.logik.TokenType $this has no node equivalent"
         )
     },
     val precedence: OperatorPrecedence = OperatorPrecedence.TOKEN_NOT_OPERATOR
