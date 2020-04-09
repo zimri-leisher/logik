@@ -113,12 +113,14 @@ class LogikStatement internal constructor(val text: String) {
         var editedText = text.replace("(", "( ").replace(")", " )")
         // some syntax sugar
         editedText = editedText.replace("!", " ! ")
-        for (word in editedText.split(" ").mapNotNull { if (it.all { char -> char == ' ' }) null else it.trim() }) {
+        // convert text into tokens w/ regex
+        val words = editedText.split(" ").mapNotNull { if (it.all { char -> char == ' ' }) null else it.trim() } //split by spaces, don't include blank words, trim off spaces
+        for (word in words) {
             val matchingToken = TokenType.values().firstOrNull { it.regex.matchEntire(word) != null }
             if (matchingToken != null) {
                 tokenList.add(Token(matchingToken, word))
             } else {
-                throw EvaluationException("Invalid token '$word'")
+                throw EvaluationException("Unknown token '$word'")
             }
         }
         tokens = tokenList.toTypedArray()
@@ -171,15 +173,19 @@ class LogikStatement internal constructor(val text: String) {
     }
 
     private fun nextExpression(precedence: OperatorPrecedence): Node {
+        // the recursion here ensures that the first thing that gets called is factor, and then under it, in lowering priority,
+        // calls to expression
         var node = if (precedence == OperatorPrecedence.HIGHEST) {
             nextFactor()
         } else {
             nextExpression(precedence + 1)
         }
+        // then go along the tokens until we have eaten all the ones of the current precedence
         while (currentToken.type.precedence == precedence) {
             val token = currentToken
             if (token.type.category == TokenCategory.OP_BINARY_INFIX) {
                 eat(token.type)
+                // infix means the (now previous) node is the first arg, next node is the next arg
                 val leftArg = node
                 val rightArg =
                     if (precedence == OperatorPrecedence.HIGHEST) nextFactor() else nextExpression(precedence + 1)
@@ -194,7 +200,7 @@ class LogikStatement internal constructor(val text: String) {
     }
 
     private fun nextFactor(): Node {
-        // a factor is an part that could begin an expression
+        // a factor is an node that could begin an expression
         val token = currentToken
         if (token.type.category == TokenCategory.LITERAL) {
             eat(token.type)
