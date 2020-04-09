@@ -4,9 +4,18 @@ import logik.Logik.logikString
 import java.lang.Integer.max
 import java.lang.StringBuilder
 
-class TruthTable(val statement: LogikStatement) {
+/**
+ * A class which stores in [mapping] every possible combination of truth values of [Variable]s for a given [statement], along with the
+ * corresponding truth value of the statement. [mapping] will be populated at instantiation with 2^n entries, where n is the
+ * number of variables in the [statement].
+ */
+class TruthTable internal constructor(val statement: LogikStatement) {
 
-    val entries: Map<VariableContext, Boolean>
+    /**
+     * The entries of ([VariableContext], [Boolean]) pairs which make up every possible combination of truth values of
+     * [Variable]s in the [statement], and the corresponding truth value of the overall [statement]
+     */
+    val mapping: Map<VariableContext, Boolean>
 
     init {
         val variableCount = statement.variables.size
@@ -30,7 +39,7 @@ class TruthTable(val statement: LogikStatement) {
             }
             contexts.add(context)
         }
-        entries = contexts.map { it to statement.evaluate(it) }.toMap()
+        mapping = contexts.map { it to statement.evaluate(it) }.toMap()
     }
 
     override fun toString(): String {
@@ -40,7 +49,7 @@ class TruthTable(val statement: LogikStatement) {
             builder.append("|_${variable.token.value}".padEnd(3 + booleanSize, '_'))
         }
         builder.appendln("|_${statement.text}_|")
-        for((context, value) in entries) {
+        for((context, value) in mapping) {
             for(variable in statement.variables) {
                 val variableValue = context.getValue(variable)
                 builder.append("| ${variableValue.logikString()}".padEnd(3 + booleanSize))
@@ -55,8 +64,8 @@ class TruthTable(val statement: LogikStatement) {
         if (javaClass != other?.javaClass) return false
 
         other as TruthTable
-        val theseEntries = entries.entries.toList()
-        val otherEntries = other.entries.entries.toList()
+        val theseEntries = mapping.entries.toList()
+        val otherEntries = other.mapping.entries.toList()
         for(i in theseEntries.indices) {
             val thisEntry = theseEntries[i]
             val otherEntry = otherEntries[i]
@@ -72,6 +81,6 @@ class TruthTable(val statement: LogikStatement) {
     }
 
     override fun hashCode(): Int {
-        return entries.hashCode()
+        return mapping.hashCode()
     }
 }

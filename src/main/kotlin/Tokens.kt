@@ -15,7 +15,7 @@ enum class TokenType(
     PREPOSITION(
         Regex("""\b\w\b"""),
         TokenCategory.VARIABLE,
-        { value, _ -> AtomicPreoposition(Token(this, value)) }
+        { value, _ -> Variable(Token(this, value)) }
     ),
     NOT(
         Regex("""(¬)|(!)|(\bl?not\b)|(\\l?not\b)"""),

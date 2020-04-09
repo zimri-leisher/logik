@@ -19,7 +19,7 @@ sealed class Node(val token: Token) {
     }
 }
 
-class AtomicPreoposition(token: Token) : Node(token) {
+class Variable(token: Token) : Node(token) {
     override fun visit(context: VariableContext): Boolean {
         return context.getValue(this)
     }

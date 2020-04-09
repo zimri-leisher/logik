@@ -14,7 +14,6 @@ object Logik {
 
     /**
      * Parses some [text] as a logical expression and returns it as a [LogikStatement].
-     * This is synonymous to instantiating a new [LogikStatement] with [text] as its constructor parameter.
      */
     fun parse(text: String) = LogikStatement(text)
 }

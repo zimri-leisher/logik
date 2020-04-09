@@ -1,29 +1,55 @@
 package logik
 
-class VariableContext(val statement: LogikStatement, private val values: MutableMap<AtomicPreoposition, Boolean>) {
+/**
+ * This class stores the boolean values of all [Variable]s for a [statement]. When a [statement] is evaluated, it creates
+ * (or accepts an already existing) [VariableContext] and the result of the evaluation is based on that context.
+ * [getValue] and [setValue] methods provide get/set access to the variables this is keeping track of.
+ */
+class VariableContext(val statement: LogikStatement, private val values: MutableMap<Variable, Boolean>) {
 
+    /**
+     * Constructs a new [VariableContext] for the [statement] with all [Variable]s set to true
+     */
     constructor(statement: LogikStatement) : this(
         statement,
         statement.variables.map { it to true }.toMap().toMutableMap()
     )
 
+    /**
+     * Constructs a new [VariableContext] for the [statement], mapping default values of each variable to the boolean value
+     * of its corresponding [Pair] inside of [pairs]. If no default value is specified, it defaults to true.
+     */
     constructor(statement: LogikStatement, pairs: Collection<Pair<String, Boolean>>) : this(statement) {
         for ((key, value) in pairs) {
             val prep = statement.variables.firstOrNull { it.token.value == key }
-                ?: throw EvaluationException("Atomic preposition $key is not defined for statement $statement")
+                ?: throw EvaluationException("Variable $key is not defined for statement $statement")
             values[prep] = value
         }
     }
 
+    /**
+     * Constructs a new [VariableContext] as a copy of [other]
+     */
     constructor(other: VariableContext) : this(
         other.statement,
         other.values.map { Pair(it.key, it.value) }.toMap().toMutableMap()
     )
 
-    fun getValue(prep: AtomicPreoposition) =
-        values[prep] ?: throw EvaluationException("Atomic preposition $prep is not defined for statement $statement")
+    /**
+     * @return the value of a [Variable] in this [VariableContext]
+     * @throw [EvaluationException] if there is no variable [prep] defined for this [statement]
+     */
+    fun getValue(prep: Variable) =
+        values[prep] ?: throw EvaluationException("Variable $prep is not defined for statement $statement")
 
-    fun setValue(prep: AtomicPreoposition, value: Boolean) {
+    /**
+     * Sets the value of a [Variable] in this [VariableContext]
+     * @throw [EvaluationException] if there is no variable [prep] defined for this [statement]
+     */
+    fun setValue(prep: Variable, value: Boolean) {
+        if(prep !in statement.variables) {
+            throw EvaluationException("Variable $prep is not defined for statement $statement")
+        }
         values[prep] = value
     }
 
@@ -63,11 +89,17 @@ class VariableContext(val statement: LogikStatement, private val values: Mutable
     }
 }
 
+/**
+ * A class which holds a compiled form of a logical expression. To evaluate the expression,
+ * use [evaluate].
+ * Access to the [Variable]s inside this expression is through [variables]
+ */
 class LogikStatement internal constructor(val text: String) {
 
-    val variables = mutableListOf<AtomicPreoposition>()
-
-    var variableContext: VariableContext
+    /**
+     * A list of all [Variable]s defined in this expression
+     */
+    val variables = mutableListOf<Variable>()
 
     private val tokens: Array<Token>
     private var currentIndex = 0
@@ -79,39 +111,52 @@ class LogikStatement internal constructor(val text: String) {
         val tokenList = mutableListOf<Token>()
         // parenthesis
         var editedText = text.replace("(", "( ").replace(")", " )")
-        // operators
+        // some syntax sugar
         editedText = editedText.replace("!", " ! ")
         for (word in editedText.split(" ").mapNotNull { if (it.all { char -> char == ' ' }) null else it.trim() }) {
             val matchingToken = TokenType.values().firstOrNull { it.regex.matchEntire(word) != null }
             if (matchingToken != null) {
                 tokenList.add(Token(matchingToken, word))
             } else {
-                /*
-                error = RoutingLanguageParseError(
-                    text.indexOf(word),
-                    word.length,
-                    "Unknown word '$word', try adding spaces around it"
-                )
-                 */
                 throw EvaluationException("Invalid token '$word'")
             }
         }
         tokens = tokenList.toTypedArray()
         currentToken = tokens[0]
-        baseNode = parse()
-        variableContext = VariableContext(this)
+        baseNode = compile()
     }
 
-    fun evaluate(context: VariableContext = variableContext) = baseNode.visit(context)
+    /**
+     * Evaluates this [LogikStatement] for some [context], defaulting to a [VariableContext] in which each variable is true.
+     * @return the truth value of the logical expression of this statement
+     * when the atomic prepositions have the truth values defined in the given [context].
+     */
+    fun evaluate(context: VariableContext = VariableContext(this)) = baseNode.visit(context)
 
-    fun evaluate(variables: Map<String, Boolean>): Boolean =
-        evaluate(VariableContext(this, variables.map { Pair(it.key, it.value) }))
+    /**
+     * Evaluates this [LogikStatement] with variables set to the value assigned to them in the map. The key of the map should
+     * be the name of the variable and the value of the map should be what you want the truth value of the variable to be.
+     * @return the truth value of the logical expression of this statement
+     * when the atomic prepositions have the truth values defined in the given [map], or true if they are not defined in the [map]
+     */
+    fun evaluate(map: Map<String, Boolean>): Boolean =
+        evaluate(VariableContext(this, map.map { Pair(it.key, it.value) }))
 
-    fun evaluate(vararg variables: Pair<String, Boolean>) = evaluate(variables.toMap())
+    /**
+     * Evaluates this [LogikStatement] with a list of (variable name, variable value) pairs. The first element of the [Pair] should
+     * be the name of the variable and the second element of the pair should be what you want the truth value of the variable to be.
+     * @return the truth value of the logical expression of this statement
+     * when the atomic prepositions have the truth values defined in the given [list], or true if they are not defined in the [list]
+     */
+    fun evaluate(vararg list: Pair<String, Boolean>) = evaluate(list.toMap())
 
+    /**
+     * @return a [TruthTable] of all possible values of this [LogikStatement]. Works by creating a [VariableContext] for each
+     * combination of true and false for each variable in this statement, and evaluating this statement for each of them.
+     */
     fun truthTable() = TruthTable(this)
 
-    private fun parse() = nextExpression(OperatorPrecedence.LOWEST)
+    private fun compile() = nextExpression(OperatorPrecedence.LOWEST)
 
     private fun eat(requiredType: TokenType) {
         if (currentToken.type == requiredType) {
@@ -156,7 +201,7 @@ class LogikStatement internal constructor(val text: String) {
             return Literal(token)
         } else if (token.type.category == TokenCategory.VARIABLE) {
             eat(token.type)
-            val prep = AtomicPreoposition(token)
+            val prep = Variable(token)
             variables.add(prep)
             return prep
         } else if (token.type.category == TokenCategory.OP_UNARY_RIGHT) {
