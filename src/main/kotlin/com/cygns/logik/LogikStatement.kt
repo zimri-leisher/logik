@@ -22,7 +22,7 @@ class VariableContext(val statement: LogikStatement, private val values: Mutable
     constructor(statement: LogikStatement, pairs: Collection<Pair<String, Boolean>>) : this(statement) {
         for ((key, value) in pairs) {
             val prep = statement.variables.firstOrNull { it.token.value == key }
-                ?: throw EvaluationException("Variable $key is not defined for statement $statement")
+                ?: throw LogikEvaluationException("Variable $key is not defined for statement $statement")
             values[prep] = value
         }
     }
@@ -37,18 +37,18 @@ class VariableContext(val statement: LogikStatement, private val values: Mutable
 
     /**
      * @return the value of a [Variable] in this [VariableContext]
-     * @throw [EvaluationException] if there is no variable [prep] defined for this [statement]
+     * @throw [LogikEvaluationException] if there is no variable [prep] defined for this [statement]
      */
     fun getValue(prep: Variable) =
-        values[prep] ?: throw EvaluationException("Variable $prep is not defined for statement $statement")
+        values[prep] ?: throw LogikEvaluationException("Variable $prep is not defined for statement $statement")
 
     /**
      * Sets the value of a [Variable] in this [VariableContext]
-     * @throw [EvaluationException] if there is no variable [prep] defined for this [statement]
+     * @throw [LogikEvaluationException] if there is no variable [prep] defined for this [statement]
      */
     fun setValue(prep: Variable, value: Boolean) {
-        if(prep !in statement.variables) {
-            throw EvaluationException("Variable $prep is not defined for statement $statement")
+        if (prep !in statement.variables) {
+            throw LogikEvaluationException("Variable $prep is not defined for statement $statement")
         }
         values[prep] = value
     }
@@ -101,31 +101,55 @@ class LogikStatement internal constructor(val text: String) {
      */
     val variables = mutableListOf<Variable>()
 
+    internal val subExpressions = mutableListOf<Node>()
+
     private val tokens: Array<Token>
     private var currentIndex = 0
 
     private var currentToken: Token
-    private val baseNode: Node
+    internal val baseNode: Node
 
     init {
+        fun getToken(word: String): List<Token> {
+            if(word == "") {
+                return emptyList()
+            }
+            val tokens = mutableListOf<Token>()
+            val types = TokenType.values()
+            val fullMatch = types.firstOrNull { it.regex matches word }
+            if(fullMatch == null) {
+                types.forEach {
+                    val matchResult = it.regex.find(word)
+                    if(matchResult != null && matchResult.range.start == 0) {
+                        tokens.add(Token(it, matchResult.value))
+                        tokens.addAll(getToken(word.removeRange(matchResult.range)))
+                        return tokens
+                    }
+                }
+                throw LogikCompileException("Unknown token $word")
+            } else {
+                return listOf(Token(fullMatch, word))
+            }
+        }
+
         val tokenList = mutableListOf<Token>()
         // parenthesis
         var editedText = text.replace("(", "( ").replace(")", " )")
         // some syntax sugar
         editedText = editedText.replace("!", " ! ")
         // convert text into tokens w/ regex
-        val words = editedText.split(" ").mapNotNull { if (it.all { char -> char == ' ' }) null else it.trim() } //split by spaces, don't include blank words, trim off spaces
+        val words = editedText.split(" ")
+            .mapNotNull { if (it.all { char -> char == ' ' }) null else it.trim() } //split by spaces, don't include blank words, trim off spaces
+
+
         for (word in words) {
-            val matchingToken = TokenType.values().firstOrNull { it.regex.matchEntire(word) != null }
-            if (matchingToken != null) {
-                tokenList.add(Token(matchingToken, word))
-            } else {
-                throw EvaluationException("Unknown token '$word'")
-            }
+            val matchingTokens = getToken(word)
+            tokenList.addAll(matchingTokens)
         }
         tokens = tokenList.toTypedArray()
         currentToken = tokens[0]
         baseNode = compile()
+        variables.sortBy { it.token.value }
     }
 
     /**
@@ -133,10 +157,7 @@ class LogikStatement internal constructor(val text: String) {
      * @return the truth value of the logical expression of this statement
      * when the atomic prepositions have the truth values defined in the given [context].
      */
-    fun evaluate(context: VariableContext = VariableContext(
-        this
-    )
-    ) = baseNode.visit(context)
+    fun evaluate(context: VariableContext = VariableContext(this)) = baseNode.visit(context)
 
     /**
      * Evaluates this [LogikStatement] with variables set to the value assigned to them in the map. The key of the map should
@@ -161,6 +182,15 @@ class LogikStatement internal constructor(val text: String) {
      */
     fun truthTable() = TruthTable(this)
 
+    fun addRedundantVariables(vararg names: String) {
+        for (name in names) {
+            if (variables.none { it.token.value == name }) {
+                variables.add(Variable(Token(TokenType.VARIABLE, name)))
+            }
+        }
+        variables.sortBy { it.token.value }
+    }
+
     private fun compile() = nextExpression(OperatorPrecedence.LOWEST)
 
     private fun eat(requiredType: TokenType) {
@@ -171,7 +201,7 @@ class LogikStatement internal constructor(val text: String) {
             currentIndex += 1
             currentToken = tokens[currentIndex]
         } else {
-            throw EvaluationException("Required $requiredType, but it was ${currentToken.type} at word index $currentIndex")
+            throw LogikCompileException("Required $requiredType, but it was ${currentToken.type} at word index $currentIndex")
         }
     }
 
@@ -210,6 +240,10 @@ class LogikStatement internal constructor(val text: String) {
             return Literal(token)
         } else if (token.type.category == TokenCategory.VARIABLE) {
             eat(token.type)
+            val previouslyExistingVariable = variables.firstOrNull { it.token.value == token.value }
+            if (previouslyExistingVariable != null) {
+                return previouslyExistingVariable
+            }
             val prep = Variable(token)
             variables.add(prep)
             return prep
@@ -222,7 +256,7 @@ class LogikStatement internal constructor(val text: String) {
                         nextExpression(token.type.precedence + 1)
                 )
             } else {
-                throw EvaluationException("Expected an expression at word index $currentIndex, but the text ended")
+                throw LogikCompileException("Expected an expression at word index $currentIndex, but the text ended")
             }
         } else if (token.type.category == TokenCategory.OP_BINARY_PREFIX) {
             if (currentIndex != tokens.lastIndex) {
@@ -240,12 +274,16 @@ class LogikStatement internal constructor(val text: String) {
             if (currentIndex != tokens.lastIndex) {
                 eat(TokenType.OPEN_PAREN)
                 val node = nextExpression(OperatorPrecedence.LOWEST)
+                if (Logik.subExpressionHighlightChar == null || token.value.contains(Logik.subExpressionHighlightChar!!)) {
+                    // if it has been highlighted as a significant sub expr
+                    subExpressions.add(node)
+                }
                 eat(TokenType.CLOSE_PAREN)
                 return node
             } else {
-                throw EvaluationException("Expected an expression at word index $currentIndex, but the text ended")
+                throw LogikCompileException("Expected an expression at word index $currentIndex, but the text ended")
             }
         }
-        throw EvaluationException("Incorrectly placed token $currentToken at word index $currentIndex")
+        throw LogikCompileException("Incorrectly placed token $currentToken at word index $currentIndex")
     }
 }

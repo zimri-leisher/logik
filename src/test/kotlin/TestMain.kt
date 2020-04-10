@@ -1,7 +1,23 @@
 import com.cygns.logik.Logik
 import org.junit.Test
 
+fun main() {
+    Logik.trueText = "T"
+    Logik.falseText = "F"
+    val statement = Logik.parse("(p sh p) sh (q sh q)")
+    println(statement.truthTable())
+    val statement2 = Logik.parse("p or q")
+    val statement3 = Logik.parse("2&&3")
+    println(statement3.truthTable())
+}
+
 class LogikTest {
+
+    @Test
+    fun test_formatting() {
+        assert(Logik.parse("2&&3").truthTable() == Logik.parse("2 and 3").truthTable())
+    }
+
     @Test
     fun test_equality() {
         val statement1 = Logik.parse("q or (v or s)")

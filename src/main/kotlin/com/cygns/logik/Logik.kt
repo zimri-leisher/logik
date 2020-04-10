@@ -1,19 +1,60 @@
 package com.cygns.logik
 
 /**
- * The Logik singleton object. The best way to parse a logical expression is using the [parse] method of this object.
+ * The Logik singleton object. To parse an expression, use [parse]
  * This object also has various settings that modify the way Logik works. For example, [trueText] and [falseText] allow you to
- * modify what Logik prints when it encounters the boolean literals `true` or `false` (e.g. when printing our a truth table).
+ * modify what Logik prints when it encounters the boolean literals `true` or `false` (e.g. when printing our a truth table),
+ * and [defaultOnlyShowTrueExpressions], [defaultShowSubExpressions] govern default settings for what [TruthTable]s show
+ * when printed out or converted to LaTeX.
  */
 object Logik {
 
+    /**
+     * The text displayed when an expression evaluates to true in a [TruthTable]. This applies to both their string representation
+     * and their LaTeX table representation.
+     */
     var trueText = "true"
+
+    /**
+     * The text displayed when an expression evaluates to false in a [TruthTable]. This applies to both their string representation
+     * and their LaTeX table representation.
+     */
     var falseText = "false"
+
+    /**
+     * The character that signifies to the compiler that a sub expression should be included in a truth table generation.
+     * This is particularly useful for seeing behavior of large expressions, because you can highlight each of the individual
+     * parts and see how they behave separately. This should be used in conjunction with parenthesis, e.g. (if the character were a '*'):
+     *
+     *
+     *     (*((x and y) or (z and w)) xor ((x and z) or (y and w)))
+     *
+     *
+     * That will separate the statement enclosed by the parenthesis immediately following the '*' and all truth tables will
+     * show it along with its value right next to the main statement.
+     */
+    var subExpressionHighlightChar: Char? = '*'
+
+    /**
+     * By default, whether or not to show sub expressions (expressions highlighted by the [subExpressionHighlightChar]).
+     */
+    var defaultShowSubExpressions = false
+
+    /**
+     * By default, whether or not to only include `true` results when printing a [TruthTable] or converting it to a LaTeX table.
+     */
+    var defaultOnlyShowTrueExpressions = false
 
     fun Boolean.logikString() = if (this) trueText else falseText
 
     /**
      * Parses some [text] as a logical expression and returns it as a [LogikStatement].
+     *
+     * Please note, spaces must separate everything except parenthesis and the '!' operator.
+     * A list of accepted operators/other symbols and their aliases as follows:
+     *
+     *
+     * * variables - any one word character (as defined by a Regex match with \w)
      */
     fun parse(text: String) = LogikStatement(text)
 }

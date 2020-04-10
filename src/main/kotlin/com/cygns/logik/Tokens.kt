@@ -1,18 +1,19 @@
 package com.cygns.logik
 
-class EvaluationException(message: String) : Exception(message)
+class LogikEvaluationException(message: String) : Exception(message)
+class LogikCompileException(message: String) : java.lang.Exception(message)
 
 enum class TokenType(
     val regex: Regex,
     val category: TokenCategory,
     val toNode: TokenType.(value: String, arguments: Array<out Node>) -> Node = { _, _ ->
-        throw EvaluationException(
-            "logik.com.cygns.logik.TokenType $this has no node equivalent"
+        throw LogikCompileException(
+            "TokenType $this has no node equivalent"
         )
     },
     val precedence: OperatorPrecedence = OperatorPrecedence.TOKEN_NOT_OPERATOR
 ) {
-    PREPOSITION(
+    VARIABLE(
         Regex("""\b\w\b"""),
         TokenCategory.VARIABLE,
         { value, _ -> Variable(Token(this, value)) }
@@ -30,7 +31,7 @@ enum class TokenType(
         OperatorPrecedence.HIGH
     ),
     OR(
-        Regex("""(∨)|(\|?\|)|(\\l?or\b)|(\bl?or\b)"""),
+        Regex("""(∨)|(\|\|)|(\\l?or\b)|(\bl?or\b)"""),
         TokenCategory.OP_BINARY_INFIX,
         { value, args -> Or(Token(this, value), args[0], args[1]) },
         OperatorPrecedence.HIGH
@@ -54,7 +55,7 @@ enum class TokenType(
         OperatorPrecedence.LOW
     ),
     OPEN_PAREN(
-        Regex("""\("""),
+        Regex("""\*?\("""),
         TokenCategory.GROUPING
     ),
     CLOSE_PAREN(
@@ -65,6 +66,12 @@ enum class TokenType(
         Regex("""(\btrue\b)|(\bfalse\b)"""),
         TokenCategory.LITERAL,
         { value, _ -> Literal(Token(this, value)) }
+    ),
+    NAND(
+        Regex("""(\bsh\b)|(\bl?nand\b)|(\\l?nand\n)|(\|)"""),
+        TokenCategory.OP_BINARY_INFIX,
+        { value, args -> Nand(Token(this, value), args[0], args[1]) },
+        OperatorPrecedence.HIGH
     )
 }
 
@@ -75,6 +82,7 @@ enum class TokenCategory {
     OP_UNARY_LEFT,
     OP_UNARY_RIGHT,
     OP_BINARY_INFIX,
+
     // no support for postfix because it requires a stack
     OP_BINARY_PREFIX
 }
