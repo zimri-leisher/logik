@@ -33,7 +33,7 @@ object Logik {
      * That will separate the statement enclosed by the parenthesis immediately following the '*' and all truth tables will
      * show it along with its value right next to the main statement.
      */
-    var subExpressionHighlightChar: Char? = '*'
+    var subExpressionHighlightChar: Char = '*'
 
     /**
      * By default, whether or not to show sub expressions (expressions highlighted by the [subExpressionHighlightChar]).
@@ -50,11 +50,17 @@ object Logik {
     /**
      * Parses some [text] as a logical expression and returns it as a [LogikStatement].
      *
-     * Please note, spaces must separate everything except parenthesis and the '!' operator.
      * A list of accepted operators/other symbols and their aliases as follows:
      *
      *
-     * * variables - any one word character (as defined by a Regex match with \w)
+     * * variables  - any one character (as defined by a Regex match with \w)
+     * * not        - ¬, !, not, lnot, \not, \lnot
+     * * and        - ∧, &&, &, and, land, \and, \land
+     * * or         - ∨, ||, or, lor, \or, \lor (NOTE: '|' is nand, not or)
+     * * xor        - ⊕, xor, lxor, \xor, \lxor, \oplus
+     * * nand       - |, sh, nand, lnand, \nand, \lnand
+     * * implies    - ⇒, =⇒, implies, \implies
+     * * iff        - ⇔, iff, liff, \iff, \liff
      */
     fun parse(text: String) = LogikStatement(text)
 }

@@ -37,9 +37,15 @@ enum class TokenType(
         OperatorPrecedence.HIGH
     ),
     XOR(
-        Regex("""(⊕)|(\bl?xor\b)|(\\l?xor\b)"""),
+        Regex("""(⊕)|(\bl?xor\b)|(\\l?xor\b)|(\\oplus)"""),
         TokenCategory.OP_BINARY_INFIX,
         { value, args -> ExclusiveOr(Token(this, value), args[0], args[1]) },
+        OperatorPrecedence.HIGH
+    ),
+    NAND(
+        Regex("""(\bsh\b)|(\bl?nand\b)|(\\l?nand\n)|(\|)"""),
+        TokenCategory.OP_BINARY_INFIX,
+        { value, args -> Nand(Token(this, value), args[0], args[1]) },
         OperatorPrecedence.HIGH
     ),
     IMPLIES(
@@ -55,7 +61,7 @@ enum class TokenType(
         OperatorPrecedence.LOW
     ),
     OPEN_PAREN(
-        Regex("""\*?\("""),
+        Regex(Regex.escape(Logik.subExpressionHighlightChar.toString()) + """?\("""),
         TokenCategory.GROUPING
     ),
     CLOSE_PAREN(
@@ -63,15 +69,9 @@ enum class TokenType(
         TokenCategory.GROUPING
     ),
     BOOLEAN(
-        Regex("""(\btrue\b)|(\bfalse\b)"""),
+        Regex("""(\btrue\b)|(\bfalse\b)|(\b([tTfF01yYnN])\b)"""),
         TokenCategory.LITERAL,
         { value, _ -> Literal(Token(this, value)) }
-    ),
-    NAND(
-        Regex("""(\bsh\b)|(\bl?nand\b)|(\\l?nand\n)|(\|)"""),
-        TokenCategory.OP_BINARY_INFIX,
-        { value, args -> Nand(Token(this, value), args[0], args[1]) },
-        OperatorPrecedence.HIGH
     )
 }
 
