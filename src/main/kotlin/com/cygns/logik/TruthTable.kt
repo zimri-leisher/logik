@@ -11,10 +11,10 @@ import java.lang.Integer.max
 class TruthTable internal constructor(val statement: LogikStatement) {
 
     /**
-     * The entries of ([VariableContext], [Boolean]) pairs which make up every possible combination of truth values of
+     * The entries of ([VariableAssignment], [Boolean]) pairs which make up every possible combination of truth values of
      * [Variable]s in the [statement], and the corresponding truth value of the overall [statement]
      */
-    val mapping: Map<VariableContext, Array<Boolean>>
+    val mapping: Map<VariableAssignment, Array<Boolean>>
 
 
     var showSubExpressions = Logik.defaultShowSubExpressions
@@ -33,9 +33,9 @@ class TruthTable internal constructor(val statement: LogikStatement) {
             possibilities[possibiltyIndex] = subPossibilities.requireNoNulls()
         }
         possibilities.requireNoNulls()
-        val contexts = mutableListOf<VariableContext>()
+        val contexts = mutableListOf<VariableAssignment>()
         for (possibility in possibilities) {
-            val context = VariableContext(statement)
+            val context = VariableAssignment(statement)
             for ((index, value) in possibility!!.withIndex()) {
                 val prep = statement.variables[index]
                 context.setValue(prep, value)
@@ -62,6 +62,8 @@ class TruthTable internal constructor(val statement: LogikStatement) {
         for(variable in statement.variables) {
             builder.append("c|")
         }
+        builder.deleteCharAt(builder.lastIndex)
+        builder.append("?{2mm}")
         if(showSubExpressions) {
             for(subExpr in statement.subExpressions) {
                 builder.append("c|")

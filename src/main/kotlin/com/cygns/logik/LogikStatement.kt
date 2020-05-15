@@ -2,13 +2,13 @@ package com.cygns.logik
 
 /**
  * This class stores the boolean values of all [Variable]s for a [statement]. When a [statement] is evaluated, it creates
- * (or accepts an already existing) [VariableContext] and the result of the evaluation is based on that context.
+ * (or accepts an already existing) [VariableAssignment] and the result of the evaluation is based on that context.
  * [getValue] and [setValue] methods provide get/set access to the variables this is keeping track of.
  */
-class VariableContext(val statement: LogikStatement, private val values: MutableMap<Variable, Boolean>) {
+class VariableAssignment(val statement: LogikStatement, private val values: MutableMap<Variable, Boolean>) {
 
     /**
-     * Constructs a new [VariableContext] for the [statement] with all [Variable]s set to true
+     * Constructs a new [VariableAssignment] for the [statement] with all [Variable]s set to true
      */
     constructor(statement: LogikStatement) : this(
         statement,
@@ -16,7 +16,7 @@ class VariableContext(val statement: LogikStatement, private val values: Mutable
     )
 
     /**
-     * Constructs a new [VariableContext] for the [statement], mapping default values of each variable to the boolean value
+     * Constructs a new [VariableAssignment] for the [statement], mapping default values of each variable to the boolean value
      * of its corresponding [Pair] inside of [pairs]. If no default value is specified, it defaults to true.
      */
     constructor(statement: LogikStatement, pairs: Collection<Pair<String, Boolean>>) : this(statement) {
@@ -28,22 +28,22 @@ class VariableContext(val statement: LogikStatement, private val values: Mutable
     }
 
     /**
-     * Constructs a new [VariableContext] as a copy of [other]
+     * Constructs a new [VariableAssignment] as a copy of [other]
      */
-    constructor(other: VariableContext) : this(
+    constructor(other: VariableAssignment) : this(
         other.statement,
         other.values.map { Pair(it.key, it.value) }.toMap().toMutableMap()
     )
 
     /**
-     * @return the value of a [Variable] in this [VariableContext]
+     * @return the value of a [Variable] in this [VariableAssignment]
      * @throw [LogikEvaluationException] if there is no variable [prep] defined for this [statement]
      */
     fun getValue(prep: Variable) =
         values[prep] ?: throw LogikEvaluationException("Variable $prep is not defined for statement $statement")
 
     /**
-     * Sets the value of a [Variable] in this [VariableContext]
+     * Sets the value of a [Variable] in this [VariableAssignment]
      * @throw [LogikEvaluationException] if there is no variable [prep] defined for this [statement]
      */
     fun setValue(prep: Variable, value: Boolean) {
@@ -61,7 +61,7 @@ class VariableContext(val statement: LogikStatement, private val values: Mutable
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as VariableContext
+        other as VariableAssignment
 
         val theseEntries = values.entries.toList()
         val otherEntries = other.values.entries.toList()
@@ -153,11 +153,11 @@ class LogikStatement internal constructor(val text: String) {
     }
 
     /**
-     * Evaluates this [LogikStatement] for some [context], defaulting to a [VariableContext] in which each variable is true.
+     * Evaluates this [LogikStatement] for some [assignment], defaulting to a [VariableAssignment] in which each variable is true.
      * @return the truth value of the logical expression of this statement
-     * when the atomic prepositions have the truth values defined in the given [context].
+     * when the atomic prepositions have the truth values defined in the given [assignment].
      */
-    fun evaluate(context: VariableContext = VariableContext(this)) = baseNode.visit(context)
+    fun evaluate(assignment: VariableAssignment = VariableAssignment(this)) = baseNode.visit(assignment)
 
     /**
      * Evaluates this [LogikStatement] with variables set to the value assigned to them in the map. The key of the map should
@@ -166,7 +166,7 @@ class LogikStatement internal constructor(val text: String) {
      * when the atomic prepositions have the truth values defined in the given [map], or true if they are not defined in the [map]
      */
     fun evaluate(map: Map<String, Boolean>): Boolean =
-        evaluate(VariableContext(this, map.map { Pair(it.key, it.value) }))
+        evaluate(VariableAssignment(this, map.map { Pair(it.key, it.value) }))
 
     /**
      * Evaluates this [LogikStatement] with a list of (variable name, variable value) pairs. The first element of the [Pair] should
@@ -177,7 +177,7 @@ class LogikStatement internal constructor(val text: String) {
     fun evaluate(vararg list: Pair<String, Boolean>) = evaluate(list.toMap())
 
     /**
-     * @return a [TruthTable] of all possible values of this [LogikStatement]. Works by creating a [VariableContext] for each
+     * @return a [TruthTable] of all possible values of this [LogikStatement]. Works by creating a [VariableAssignment] for each
      * combination of true and false for each variable in this statement, and evaluating this statement for each of them.
      */
     fun truthTable() = TruthTable(this)

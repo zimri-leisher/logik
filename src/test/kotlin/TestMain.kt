@@ -1,14 +1,9 @@
 import com.cygns.logik.Logik
 import org.junit.Test
+import java.lang.AssertionError
+import java.lang.Math.pow
 
 fun main() {
-    Logik.trueText = "T"
-    Logik.falseText = "F"
-    val statement = Logik.parse("(p sh p) sh (q sh q)")
-    println(statement.truthTable())
-    val statement2 = Logik.parse("p or q")
-    val statement3 = Logik.parse("2&&3")
-    println(statement3.truthTable())
 }
 
 class LogikTest {

@@ -1,7 +1,7 @@
 package com.cygns.logik
 
 sealed class Node(val token: Token) {
-    abstract fun visit(context: VariableContext): Boolean
+    abstract fun visit(assignment: VariableAssignment): Boolean
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -25,8 +25,8 @@ sealed class Node(val token: Token) {
 }
 
 class Variable(token: Token) : Node(token) {
-    override fun visit(context: VariableContext): Boolean {
-        return context.getValue(this)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        return assignment.getValue(this)
     }
 
     override fun toLaTeX() = toString()
@@ -61,8 +61,8 @@ sealed class UnaryOperator(token: Token, val arg: Node) : Node(token) {
 }
 
 class Not(token: Token, arg: Node) : UnaryOperator(token, arg) {
-    override fun visit(context: VariableContext): Boolean {
-        return !arg.visit(context)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        return !arg.visit(assignment)
     }
 
     override fun toLaTeX(): String {
@@ -71,7 +71,7 @@ class Not(token: Token, arg: Node) : UnaryOperator(token, arg) {
 }
 
 class Literal(token: Token) : Node(token) {
-    override fun visit(context: VariableContext): Boolean {
+    override fun visit(assignment: VariableAssignment): Boolean {
         return token.value.toBoolean()
     }
 
@@ -110,9 +110,9 @@ sealed class BinaryOperator(token: Token, val left: Node, val right: Node) : Nod
 }
 
 class Implies(token: Token, left: Node, right: Node) : BinaryOperator(token, left, right) {
-    override fun visit(context: VariableContext): Boolean {
-        val leftValue = left.visit(context)
-        val rightValue = right.visit(context)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        val leftValue = left.visit(assignment)
+        val rightValue = right.visit(assignment)
         return !leftValue || (leftValue && rightValue)
     }
 
@@ -122,9 +122,9 @@ class Implies(token: Token, left: Node, right: Node) : BinaryOperator(token, lef
 }
 
 class IfAndOnlyIf(token: Token, left: Node, right: Node) : BinaryOperator(token, left, right) {
-    override fun visit(context: VariableContext): Boolean {
-        val leftValue = left.visit(context)
-        val rightValue = right.visit(context)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        val leftValue = left.visit(assignment)
+        val rightValue = right.visit(assignment)
         return leftValue == rightValue
     }
 
@@ -134,9 +134,9 @@ class IfAndOnlyIf(token: Token, left: Node, right: Node) : BinaryOperator(token,
 }
 
 class ExclusiveOr(token: Token, left: Node, right: Node) : BinaryOperator(token, left, right) {
-    override fun visit(context: VariableContext): Boolean {
-        val leftValue = left.visit(context)
-        val rightValue = right.visit(context)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        val leftValue = left.visit(assignment)
+        val rightValue = right.visit(assignment)
         return leftValue != rightValue
     }
 
@@ -146,9 +146,9 @@ class ExclusiveOr(token: Token, left: Node, right: Node) : BinaryOperator(token,
 }
 
 class Or(token: Token, left: Node, right: Node) : BinaryOperator(token, left, right) {
-    override fun visit(context: VariableContext): Boolean {
-        val leftValue = left.visit(context)
-        val rightValue = right.visit(context)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        val leftValue = left.visit(assignment)
+        val rightValue = right.visit(assignment)
         return leftValue || rightValue
     }
 
@@ -158,9 +158,9 @@ class Or(token: Token, left: Node, right: Node) : BinaryOperator(token, left, ri
 }
 
 class And(token: Token, left: Node, right: Node) : BinaryOperator(token, left, right) {
-    override fun visit(context: VariableContext): Boolean {
-        val leftValue = left.visit(context)
-        val rightValue = right.visit(context)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        val leftValue = left.visit(assignment)
+        val rightValue = right.visit(assignment)
         return leftValue && rightValue
     }
 
@@ -170,9 +170,9 @@ class And(token: Token, left: Node, right: Node) : BinaryOperator(token, left, r
 }
 
 class Nand(token: Token, left: Node, right: Node) : BinaryOperator(token, left, right) {
-    override fun visit(context: VariableContext): Boolean {
-        val leftValue = left.visit(context)
-        val rightValue = right.visit(context)
+    override fun visit(assignment: VariableAssignment): Boolean {
+        val leftValue = left.visit(assignment)
+        val rightValue = right.visit(assignment)
         return !(leftValue && rightValue)
     }
 
